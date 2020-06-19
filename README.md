@@ -3,4 +3,4 @@
 Put any documentation here including any answers to the questions in the 
 assignment on Canvas.
 
-If I understood the question correctly, the difference between the outputs of Part2 and outputs of Part3 shows that the regardless of the frquency of a word, the importance of certain words are more aptly mesuared by tf-idf. 
+It can be seen in the plot visualisations that top n words in the TF model are different in comparison to TFIDF model since TFIDF model takes terms that cover all the documents in the data instead of just individual documents.  
