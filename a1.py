@@ -5,175 +5,205 @@ import numpy as np
 import numpy.random as npr
 import re
 import matplotlib.pyplot as plt
+import nltk
 from nltk.tokenize import word_tokenize
-# ADD ANY OTHER IMPORTS YOU LIKE
+import operator
+import math
 
-# DO NOT CHANGE THE SIGNATURES OF ANY DEFINED FUNCTIONS.
-# YOU CAN ADD "HELPER" FUNCTIONS IF YOU LIKE.
+def assign_count_values(row):
+    file_name = row['file_names']
+    folder_name = row['folder_names']
+    for key, val in unique_words_by_filenames[file_name].items():
+        if key in row.index:
+            row[key] = val
+    return row
 
-
-
-def part1_load(folder1, folder2, n=1, m=10):
-    # CHANGE WHATEVER YOU WANT *INSIDE* THIS FUNCTION.
-    path_1 = [folder1]
-    path_2 = [folder2]
-    folder1_list = []
-    folder2_list = []
-
-    for index in path_1:
-        for filename in os.listdir(index):
-            with open(os.path.join(index, filename), 'r') as filedata:
-                first_files = " ".join(filedata.read().split())
-                
-                d_1 = {}
-                tokens = re.findall(r'\w+', first_files)
-                for token in tokens:
-                    if token in d_1:
-                        d_1[token] = d_1[token] + 1
-                    else:
-                        d_1[token] = 1
-                
-                folder1_list.append(d_1)
-
-    for i in path_2:
-        for filename_2 in os.listdir(i):
-            with open(os.path.join(i, filename_2), 'r') as filedata_2:
-                second_files = " ".join(filedata_2.read().split())
-                
-                d_2 = {}
-                tokens = re.findall(r'\w+', second_files)
-                for token in tokens:
-                    if token in d_2:
-                        d_2[token] = d_2[token] + 1
-                    else:
-                        d_2[token] = 1
-                
-                folder2_list.append(d_2)
+def part1_load(class_1_folder, class_2_folder, n=1):
+#     class_1_folder = "a1/grain"
+#     class_2_folder = "a1/crude"
+    class_1_df = pd.DataFrame(columns=['file_names', 'folder_names'])
+    class_2_df = pd.DataFrame(columns=['file_names', 'folder_names'])
+    tokenizer = nltk.RegexpTokenizer(r"\w+")
+    class_1_file_names = []
+    class_2_file_names = []
     
-    folders = folder1_list, folder2_list
+    unique_words_by_filenames = {}
+    complete_unique_words_list = []
+
+    for file in os.listdir(class_1_folder):
+        class_1_file_names.append(file)
+        file_str = open(os.path.join(class_1_folder, file)).read().lower()
+        file_words_list = tokenizer.tokenize(file_str) #remove punctuation and tokenise words
+        unique_words = set(file_words_list)
+        unique_words_with_counts = {}
+        for words in unique_words : 
+            complete_unique_words_list.append(words)
+            unique_words_with_counts[words] = file_words_list.count(words)
+        unique_words_by_filenames[file] = unique_words_with_counts
+    class_1_df['file_names'] = class_1_file_names
+    class_1_df['folder_names'] = class_1_folder
+
+    for file in os.listdir(class_2_folder):
+        class_2_file_names.append(file)
+        file_str = open(os.path.join(class_2_folder, file)).read().lower()
+        file_words_list = tokenizer.tokenize(file_str) #remove punctuation and tokenise words
+        unique_words = set(file_words_list)
+        unique_words_with_counts = {}
+        for words in unique_words : 
+            complete_unique_words_list.append(words)
+            unique_words_with_counts[words] = file_words_list.count(words)
+        unique_words_by_filenames[file] = unique_words_with_counts
+    class_2_df['file_names'] = class_2_file_names
+    class_2_df['folder_names'] = class_2_folder
+
+    final_df = class_1_df.append(class_2_df, ignore_index=True)
+#     print(final_df.head())
+#     print("unique words by filenames dict\n\n\n\n")
+#     print(unique_words_by_filenames)
+#     print("total number of unique words in all files")
+#     print(len(complete_unique_words_list))
     
-
-    name_of_the_files = []
-    for files_a in path_1:
-        for docs in os.listdir(files_a):
-            name_of_the_files.append(docs)
+    for word in complete_unique_words_list:
+        final_df[word] = 0
+    final_df = final_df.apply(assign_count_values, axis=1)
     
-    for files_b in path_2:
-        for docus in os.listdir(files_b):
-            name_of_the_files.append(docus)
+    return final_df
 
+df = part1_load("a1/grain", "a1/crude")
+df.head()
 
-    data_frame = pd.concat(map(pd.DataFrame, folders), axis=1).melt().dropna()
+import operator
+
+def part2_vis(df, m=5):
+#     m = 5
+    max_col_values = {}
+    for col in df.columns:
+        if col not in ['file_names', 'folder_names']:
+            max_col_values[col] = max(df[col])
+
+    max_col_values = dict(sorted(max_col_values.items(), key=operator.itemgetter(1), reverse=True)[:m])
+
+    print(max_col_values)
+    max_col_names = list(max_col_values.keys())
+    print(list(max_col_values.keys()))
     
-    data_frame.columns = ['word', 'frequency']
-
-    return data_frame.nlargest(m, 'frequency')
-
-    #return pd.DataFrame(npr.randn(2,2)) # DUMMY RETURN
-
-df = part1_load("a1/crude/", "a1/grain/")
-
-print(part1_load("a1/crude/", "a1/grain/"))
-
-#print(part1_load("a1/crude/", "a1/grain/"))
-
-def part2_vis(df):
-    # DO NOT CHANGE
-    assert isinstance(df, pd.DataFrame)
+    max_grain_values = df[df['folder_names'] == 'a1/grain'][max_col_names].sum().values
+    max_crude_values = df[df['folder_names'] == 'a1/crude'][max_col_names].sum().values
     
+    new_df = pd.DataFrame({'grain':max_grain_values, 'crude':max_crude_values}, index = max_col_names)
+    print(new_df)
+    ax = new_df.plot.bar(rot=0)
 
-    # CHANGE WHAT YOU WANT HERE
-    #df = part1_load("a1/crude/")
-    return df.plot(x = 'word', y='frequency', kind="bar")
+plot = part2_vis(df)
+df.head()
 
-print(part2_vis(df))
+import math
 
+def computeTF(wordDict, bowCount):
+    tfDict = {}
+    for word, count in wordDict.items():
+        try:
+            tfDict[word] = count/float(bowCount)
+        except Exception as e:
+            tfDict[word] = 0.0
+    return tfDict
+
+def computeIDF(docList,N):
+    idfDict = {}
+    for word, val in docList.items():
+        try:
+            idfDict[word] = math.log10(N / float(val))
+        except Exception as e:
+            idfDict[word] = 0.0
+    return idfDict
+
+def computeTFIDF(tfBow, idfs):
+    tfidf = {}
+    for word, val in tfBow.items():
+        tfidf[word] = val*idfs[word]
+    return tfidf
+
+def calculate_tf_idf(row,complete_df):
+#     print(row)
+    file_name = row['file_names']
+    folder_name = row['folder_names']
+    len_bow = row.drop(['file_names','folder_names']).astype(bool).sum()
+    word_dict = row.drop(['file_names','folder_names']).to_dict()
+    tfDict = computeTF(word_dict,len_bow)
+#     print(tfDict)
+    idfDict = computeIDF(word_dict, len(complete_df))
+#     print(idfDict)
+    tfidf = computeTFIDF(tfDict, idfDict)
+    tfidf['file_names'] = file_name
+    tfidf['folder_names'] = folder_name
+#     print(tfidf)
+#     tfidf_df.append(tfidf, ignore_index=True)
+#     print(tfidf_df)
+    return tfidf
+
+df.head()
+
+tfidf_df = pd.DataFrame(columns=df.columns)
+tfidf_list = df.apply(calculate_tf_idf, complete_df = df, axis=1).values
+print('done1')
+
+tfidf_df = pd.DataFrame.from_records(tfidf_list)
+print("done")
+
+
+import math
+
+def computeTF(wordDict, bowCount):
+    tfDict = {}
+    for word, count in wordDict.items():
+        try:
+            tfDict[word] = count/float(bowCount)
+        except Exception as e:
+            tfDict[word] = 0.0
+    return tfDict
+
+def computeIDF(docList,N):
+    idfDict = {}
+    for word, val in docList.items():
+        try:
+            idfDict[word] = math.log10(N / float(val))
+        except Exception as e:
+            idfDict[word] = 0.0
+    return idfDict
+
+def computeTFIDF(tfBow, idfs):
+    tfidf = {}
+    for word, val in tfBow.items():
+        tfidf[word] = val*idfs[word]
+    return tfidf
+
+def calculate_tf_idf(row,complete_df):
+#     print(row)
+    file_name = row['file_names']
+    folder_name = row['folder_names']
+    len_bow = row.drop(['file_names','folder_names']).astype(bool).sum()
+    word_dict = row.drop(['file_names','folder_names']).to_dict()
+    tfDict = computeTF(word_dict,len_bow)
+#     print(tfDict)
+    idfDict = computeIDF(word_dict, len(complete_df))
+#     print(idfDict)
+    tfidf = computeTFIDF(tfDict, idfDict)
+    tfidf['file_names'] = file_name
+    tfidf['folder_names'] = folder_name
+#     print(tfidf)
+#     tfidf_df.append(tfidf, ignore_index=True)
+#     print(tfidf_df)
+    return tfidf
 
 def part3_tfidf(df):
-    # DO NOT CHANGE
-    assert isinstance(df, pd.DataFrame)
-      
-    def all_words(folder1, folder2):
-        path_1 = [folder1]
-        path_2 = [folder2]
+    tfidf_df = pd.DataFrame(columns=df.columns)
+    tfidf_list = df.apply(calculate_tf_idf, complete_df = df, axis=1).values
+    tfidf_df = pd.DataFrame.from_records(tfidf_list)
+    print("done")
+    return tfidf_df
 
-        for index in path_1:
-            for filename in os.listdir(index):
-                with open(os.path.join(index, filename), 'r') as filedata:
-                    first_files = " ".join(filedata.read().split())
+tfidf_df = part3_tfidf(df)
 
-        for i in path_2:
-            for filename_2 in os.listdir(i):
-                with open(os.path.join(i, filename_2), 'r') as filedata_2:
-                    second_files = " ".join(filedata_2.read().split())
+tfidf_df.head()
 
-
-        all_files = first_files, second_files
-
-        paragprahs = " ".join(all_files)
-
-        tok_all = nltk.sent_tokenize(paragprahs)
-
-        for i in range(len(tok_all)):
-            tok_all[i] = tok_all[i].lower()
-            tok_all[i] = re.sub(r'\W',' ',tok_all[i])
-            tok_all[i] = re.sub(r'\s+',' ',tok_all[i])
-
-
-        X = []
-        for data in tok_all:
-            vector = []
-            for word in df['word'].tolist():
-                if word in nltk.word_tokenize(data):
-                    vector.append(1)
-                else:
-                    vector.append(0)
-            X.append(vector)
-
-
-        word_idfs = {}
-
-        for word in df['word'].tolist():
-            doc_count = 0
-            for data in tok_all:
-                data = nltk.word_tokenize(data)
-                if word in data:
-                    doc_count += 1
-                    h = (len(tok_all) / doc_count )+1
-                    word_idfs[word] = np.log(h)
-
-                    
-        tf_matrix = {}
-        for word in df['word'].tolist():
-            doc_tf = []
-            for data in tok_all:
-                frequency = 0
-                data = nltk.word_tokenize(data)
-                for w in data:
-                    if w == word:
-                        frequency += 1
-                tf_word = frequency / len(data)
-                doc_tf.append(tf_word)
-        tf_matrix[word] = doc_tf
-
-
-
-        tfidf_matrix = []
-        for word in tf_matrix.keys():
-            tfidf = []
-            for value in tf_matrix[word]:
-                score = value * word_idfs[word]
-                tfidf.append(score)
-        tfidf_matrix.append(tfidf)
-
-
-        X = np.asarray(tfidf_matrix)
-        X = np.transpose(X)
-
-        print(X)
-
-
-    all_words("a1/crude/", "a1/grain/")
-
-print(part3_tfidf(df))
-
+plot = part2_vis(tfidf_df)
