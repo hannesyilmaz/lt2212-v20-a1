@@ -141,60 +141,6 @@ def calculate_tf_idf(row,complete_df):
 #     print(tfidf_df)
     return tfidf
 
-df.head()
-
-tfidf_df = pd.DataFrame(columns=df.columns)
-tfidf_list = df.apply(calculate_tf_idf, complete_df = df, axis=1).values
-print('done1')
-
-tfidf_df = pd.DataFrame.from_records(tfidf_list)
-print("done")
-
-
-import math
-
-def computeTF(wordDict, bowCount):
-    tfDict = {}
-    for word, count in wordDict.items():
-        try:
-            tfDict[word] = count/float(bowCount)
-        except Exception as e:
-            tfDict[word] = 0.0
-    return tfDict
-
-def computeIDF(docList,N):
-    idfDict = {}
-    for word, val in docList.items():
-        try:
-            idfDict[word] = math.log10(N / float(val))
-        except Exception as e:
-            idfDict[word] = 0.0
-    return idfDict
-
-def computeTFIDF(tfBow, idfs):
-    tfidf = {}
-    for word, val in tfBow.items():
-        tfidf[word] = val*idfs[word]
-    return tfidf
-
-def calculate_tf_idf(row,complete_df):
-#     print(row)
-    file_name = row['file_names']
-    folder_name = row['folder_names']
-    len_bow = row.drop(['file_names','folder_names']).astype(bool).sum()
-    word_dict = row.drop(['file_names','folder_names']).to_dict()
-    tfDict = computeTF(word_dict,len_bow)
-#     print(tfDict)
-    idfDict = computeIDF(word_dict, len(complete_df))
-#     print(idfDict)
-    tfidf = computeTFIDF(tfDict, idfDict)
-    tfidf['file_names'] = file_name
-    tfidf['folder_names'] = folder_name
-#     print(tfidf)
-#     tfidf_df.append(tfidf, ignore_index=True)
-#     print(tfidf_df)
-    return tfidf
-
 def part3_tfidf(df):
     tfidf_df = pd.DataFrame(columns=df.columns)
     tfidf_list = df.apply(calculate_tf_idf, complete_df = df, axis=1).values
